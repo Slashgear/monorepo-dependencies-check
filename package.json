@@ -1,0 +1,39 @@
+{
+  "name": "monorepo-dependencies-check",
+  "version": "1.0.0",
+  "main": "index.js",
+  "bin": {
+    "monorepo-dependencies-check": "./src/index.js"
+  },
+  "repository": "git@github.com:Slashgear/monorepo-dependencies-check.git",
+  "author": "Antoine Caron <antoine.caron@zenika.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10"
+  },
+  "engineStrict": true,
+  "scripts": {
+    "monorepo-dependencies-check": "yarn start",
+    "start": "node src/index.js",
+    "lint": "eslint --cache src/",
+    "format": "prettier-eslint --write 'src/**/*.js'",
+    "format:dry-run": "prettier-eslint --list-different 'src/**/*.js'"
+  },
+  "dependencies": {
+    "chalk": "2.4.1",
+    "lodash": "4.17.11",
+    "yargs": "12.0.5",
+    "glob-promise": "^3.4.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "8.2.1",
+    "eslint": "4.16.0",
+    "eslint-config-m6web": "1.1.0",
+    "eslint-config-prettier": "2.9.0",
+    "eslint-plugin-m6web-tools": "1.2.0",
+    "eslint-plugin-prettier": "2.5.0",
+    "prettier": "1.10.2",
+    "prettier-eslint": "8.8.1",
+    "prettier-eslint-cli": "4.7.0"
+  }
+}
