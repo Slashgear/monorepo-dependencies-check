@@ -32,3 +32,9 @@ You could also check for as many packages as you want.
 ```bash
 monorepo-dependencies-check -p react styled-components babel eslint
 ```
+
+You could also pass `--all` to check for all dependencies listed in the root _package.json_ file.
+
+```bash
+monorepo-dependencies-check --all
+```

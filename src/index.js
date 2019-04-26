@@ -5,14 +5,17 @@ const yargs = require('yargs');
 const chalk = require('chalk');
 const _ = require('lodash');
 const glob = require('glob-promise');
-const { spawn } = require('child_process');
 
 const { argv } = yargs
   .usage('Usage: $0 <command> [options]')
   .alias('p', 'packages')
   .array('p')
   .describe('p', 'package names')
-  .demandOption(['p'])
+  .option('all', {
+    describe: 'should check all dependencies',
+    default: false,
+  })
+  .alias('a', 'all')
   .option('path', {
     describe: 'path to package.json',
     default: '.',
@@ -20,48 +23,66 @@ const { argv } = yargs
   .help('h')
   .alias('h', 'help');
 
+const shouldCheckAllPackages = argv.a || (!argv.a && !argv.p);
 const packagesToCheck = argv.p;
 const rootPackage = require(path.join(process.cwd(), argv.path, '/package.json'));
 
 const workspaces = rootPackage.workspaces || [];
 
-console.log(chalk.green(`Checking ${packagesToCheck} version in current workspace`));
+if (shouldCheckAllPackages) {
+  console.log(chalk.green(`Checking all dependencies version in current workspace`));
+} else {
+  console.log(chalk.green(`Checking ${packagesToCheck} version in current workspace`));
+}
 
 if (!workspaces.length) {
   console.log(chalk.green(`No workspace defined`));
   process.exit(0);
 }
 
-const rootVersions = _.pick(_.merge({}, rootPackage.dependencies, rootPackage.devDependencies), packagesToCheck);
+const filterPackages = shouldCheckAllPackages ? _.identity : packages => _.pick(packages, packagesToCheck);
 
-spawn('yarn', ['workspaces', 'info', '--json']);
+const rootVersions = filterPackages(_.merge({}, rootPackage.dependencies, rootPackage.devDependencies));
 
-const filterDependenciesBypackage = packages =>
+const filterDependenciesByPackage = packages =>
   _.reduce(
     _.flatMap(packages),
     (accumulator, pack) => {
       // Loading package.json
-      const packageJson = require(path.join(process.cwd(), argv.path, pack));
-      accumulator[pack] = _.pick(
-        _.merge({}, packageJson.dependencies, packageJson.devDependencies, packageJson.peerDependencies),
-        packagesToCheck,
-      );
+      if (!/node_modules/.test(pack)) {
+        const packageJson = require(path.join(process.cwd(), argv.path, pack));
+        accumulator[pack] = filterPackages(_.merge({}, packageJson.dependencies, packageJson.devDependencies));
+      }
 
       return accumulator;
     },
     {},
   );
 
-const hasErrorsPackage = pack => _.some(pack, (value, key) => rootVersions[key] && rootVersions[key] !== value);
+const matchVersion = (version1, version2) => !version1.includes(version2);
+
+const hasErrorsPackage = pack =>
+  _.reduce(
+    pack,
+    (accumulator, value, key) => {
+      if (rootVersions[key] && matchVersion(value, rootVersions[key])) {
+        accumulator[key] = value;
+      }
+
+      return accumulator;
+    },
+    {},
+  );
 
 Promise.all(workspaces.map(workspace => glob(`${workspace}/package.json`)))
   .then(packages => {
-    const dependenciesValueByPackages = filterDependenciesBypackage(packages);
+    const dependenciesValueByPackages = filterDependenciesByPackage(packages);
     const withErrorPackages = _.reduce(
       dependenciesValueByPackages,
       (accumulator, pack, key) => {
-        if (hasErrorsPackage(pack)) {
-          accumulator[key] = pack;
+        const listErrors = hasErrorsPackage(pack);
+        if (!_.isEmpty(listErrors)) {
+          accumulator[key] = listErrors;
         }
 
         return accumulator;
@@ -76,7 +97,7 @@ Promise.all(workspaces.map(workspace => glob(`${workspace}/package.json`)))
       console.log(rootVersions);
       process.exit(1);
     } else {
-      console.log(chalk.green(`Packages ${packagesToCheck} version is synchronized in all workspace`));
+      console.log(chalk.green(`Packages version is synchronized in all workspace`));
       process.exit(0);
     }
   })
