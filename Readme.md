@@ -1,7 +1,5 @@
 # monorepo-dependencies-check
 
-[![Build Status](https://travis-ci.org/Slashgear/monorepo-dependencies-check.svg?branch=master)](https://travis-ci.org/Slashgear/monorepo-dependencies-check)
-
 In a monorepo architecture you often want to keep your dependencies synchronized between packages.
 This *CLI* tool will help you check the versions.
 
